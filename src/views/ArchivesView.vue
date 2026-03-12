@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 
 const archives = ref([])
-const contracts = ref([]) // Liste des noms de fichiers images
+const contracts = ref([]) 
 const loading = ref(true)
 const activeTab = ref('questions') // 'questions' ou 'contrats'
 const activeSessionIndex = ref(null)
@@ -17,21 +17,19 @@ const chunkedArchives = computed(() => {
   return chunks
 })
 
-const fetchData = async () => {
+const fetchData = () => {
   loading.value = true
-  try {
-    // On récupère les questions
-    const resQuestions = await fetch('http://localhost:3001/api/responses')
-    archives.value = await resQuestions.json()
-
-    // On récupère la liste des contrats
-    const resContracts = await fetch('http://localhost:3001/api/contracts')
-    contracts.value = (await resContracts.json()).reverse() // Les plus récents en premier
-  } catch (error) {
-    console.error("Erreur de chargement:", error)
-  } finally {
+  
+  // On simule un petit temps de chargement pour l'effet "Coffre-fort"
+  setTimeout(() => {
+    // Récupération des données depuis le navigateur
+    archives.value = JSON.parse(localStorage.getItem('archive_questions') || '[]')
+    
+    // Pour les contrats, on les prend et on les inverse (les plus récents en premier)
+    contracts.value = JSON.parse(localStorage.getItem('archive_contracts') || '[]').reverse()
+    
     loading.value = false
-  }
+  }, 600)
 }
 
 const toggleSession = (index) => {
@@ -108,6 +106,7 @@ onMounted(() => { fetchData() })
                     <p class="text-xs font-black text-yellow-500 uppercase mb-2">Item {{ iIndex + 1 }}</p>
                     <h3 class="text-xl font-black mb-4 leading-tight uppercase">{{ item.question }}</h3>
                     <p class="italic text-slate-700 bg-slate-50 p-4 border-l-4 border-slate-900 shadow-inner italic">"{{ item.answer || 'Aucune preuve.' }}"</p>
+                    <img v-if="item.imagePath" :src="item.imagePath" class="mt-4 max-w-[200px] border-4 border-slate-900 shadow-md" />
                   </div>
                 </div>
               </div>
@@ -119,13 +118,13 @@ onMounted(() => { fetchData() })
           <div v-if="contracts.length === 0" class="col-span-full text-center py-10 font-bold text-slate-400 italic">
             Aucune âme n'a été vendue aujourd'hui. Dommage.
           </div>
-          <div v-for="(fileName, index) in contracts" :key="index" 
+          <div v-for="(contrat, index) in contracts" :key="index" 
                class="bg-white border-4 border-slate-900 p-4 shadow-[10px_10px_0px_0px_rgba(239,68,68,1)] transform hover:rotate-0 transition-all rotate-1">
-            <p class="text-[10px] font-black uppercase text-slate-400 mb-2 italic">Contrat ID: {{ fileName.split('_')[2] }}</p>
-            <img :src="`http://localhost:3001/src/assets/${fileName}`" class="w-full h-auto border-2 border-slate-200" />
+            <p class="text-[10px] font-black uppercase text-slate-400 mb-2 italic">Contrat ID: {{ contrat.id }}</p>
+            <img :src="contrat.image" class="w-full h-auto border-2 border-slate-200" />
             <div class="mt-4 flex justify-between items-center">
               <span class="text-xs font-black text-red-600 uppercase">● Officiel</span>
-              <a :href="`http://localhost:3001/src/assets/${fileName}`" download class="text-[10px] font-bold underline uppercase">Télécharger la preuve</a>
+              <a :href="contrat.image" download="cession_ame.png" class="text-[10px] font-bold underline uppercase">Télécharger la preuve</a>
             </div>
           </div>
         </div>

@@ -4,10 +4,10 @@ import html2canvas from 'html2canvas'
 
 // --- ÉTATS ---
 const canvasRef = ref(null)
-const contractElement = ref(null) // Pour capturer tout le bloc du contrat
+const contractElement = ref(null) 
 const isDrawing = ref(false)
-const showContract = ref(false)   // Bascule l'affichage
-const signatureImg = ref(null)    // Image de la signature seule
+const showContract = ref(false)   
+const signatureImg = ref(null)    
 let ctx = null
 
 // --- LOGIQUE DESSIN (CANVAS) ---
@@ -45,36 +45,32 @@ const clearSignature = () => {
   ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
 }
 
-// --- LOGIQUE DE SAUVEGARDE COMPLÈTE ---
+// --- LOGIQUE DE SAUVEGARDE COMPLÈTE (100% FRONT) ---
 const validerContrat = async () => {
-  // 1. On transforme le dessin en image pour l'afficher DANS le contrat
   signatureImg.value = canvasRef.value.toDataURL('image/png')
-  
-  // 2. On affiche le contrat HTML
   showContract.value = true
-
-  // 3. On attend que Vue affiche le contrat (nextTick)
   await nextTick()
 
-  // 4. On capture tout le bloc "contractElement" en image
   if (contractElement.value) {
     const canvasFull = await html2canvas(contractElement.value, {
       backgroundColor: '#ffffff',
-      scale: 2 // Haute qualité
+      scale: 2 
     })
     
     const fullImageBase64 = canvasFull.toDataURL('image/png')
 
-    // 5. On envoie l'image complète au serveur
+    // On sauvegarde l'image du contrat dans le localStorage
     try {
-      await fetch('http://localhost:3001/api/save-contract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: fullImageBase64 })
+      const storedContracts = JSON.parse(localStorage.getItem('archive_contracts') || '[]')
+      storedContracts.push({
+        id: 'Contrat_' + Date.now(),
+        image: fullImageBase64,
+        date: new Date().toISOString()
       })
-      console.log("Contrat complet sauvegardé dans assets !")
+      localStorage.setItem('archive_contracts', JSON.stringify(storedContracts))
+      console.log("Contrat complet sauvegardé dans le navigateur !")
     } catch (err) {
-      console.error("Erreur de sauvegarde serveur :", err)
+      console.error("Erreur de sauvegarde navigateur :", err)
     }
   }
   

@@ -4,9 +4,9 @@ import { ref } from 'vue'
 // --- ÉTATS DU QUESTIONNAIRE ---
 const step = ref(0)
 const currentAnswer = ref("")
-const uploadedImage = ref(null) // Pour l'URL de prévisualisation (le lien Blob)
-const rawFile = ref(null)      // Pour stocker le VRAI fichier (le binaire)
-const results = ref([])        // Pour l'affichage final sur cette page
+const uploadedImage = ref(null) 
+const rawFile = ref(null)      
+const results = ref([])        
 
 // --- TES 15 QUESTIONS ---
 const questions = [
@@ -27,12 +27,11 @@ const questions = [
   { q: "trouve moi une image ou photo, qui représente ma tête pendant la création du questionnaire ?" }
 ]
 
-// --- LOGIQUE DE GESTION D'IMAGE ---
 const onFileChange = (e) => {
   const file = e.target.files[0]
   if (file) {
-    rawFile.value = file // On garde le fichier réel pour le serveur
-    uploadedImage.value = URL.createObjectURL(file) // On crée un aperçu pour l'utilisateur
+    rawFile.value = file 
+    uploadedImage.value = URL.createObjectURL(file) 
   }
 }
 
@@ -41,46 +40,49 @@ const removeImage = () => {
   rawFile.value = null
 }
 
-// --- COMMUNICATION AVEC LE SERVEUR ---
+// --- COMMUNICATION AVEC LE LOCALSTORAGE (100% FRONT) ---
 const next = async () => {
-  // 1. On prépare l'enveloppe (FormData)
-  const formData = new FormData()
-  formData.append('question', questions[step.value].q)
-  formData.append('answer', currentAnswer.value)
-  
+  let imgBase64 = null
+
+  // Si une image est fournie, on la transforme en texte (Base64) pour la sauvegarder dans le navigateur
   if (rawFile.value) {
-    formData.append('image', rawFile.value) // Ajoute le fichier image si présent
+    imgBase64 = await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result)
+      reader.readAsDataURL(rawFile.value)
+    })
+  }
+
+  // On prépare la donnée à sauvegarder
+  const reponseA_Sauvegarder = {
+    question: questions[step.value].q,
+    answer: currentAnswer.value,
+    imagePath: imgBase64, // Sera null s'il n'y a pas d'image
+    timestamp: new Date().toISOString()
   }
 
   try {
-    // 2. On envoie au serveur (assure-toi que node server.js tourne sur le port 3001)
-    const response = await fetch('http://localhost:3001/api/save', {
-      method: 'POST',
-      body: formData // Pas besoin de headers Content-Type, FormData s'en occupe !
-    })
-
-    if (!response.ok) throw new Error('Erreur lors de la sauvegarde')
-
-    const data = await response.json()
-
-    // 3. On sauvegarde localement pour l'écran final de la session
-    results.value.push({
-      q: questions[step.value].q,
-      a: currentAnswer.value,
-      img: data.imagePath || uploadedImage.value // On utilise le chemin renvoyé par le serveur
-    })
-
-    // 4. Nettoyage et passage à la suite
-    currentAnswer.value = ""
-    uploadedImage.value = null
-    rawFile.value = null
-    step.value++
-    window.scrollTo(0,0)
-    
-  } catch (error) {
-    console.error("Détails de l'erreur:", error)
-    alert("⚠️ Le serveur de sauvegarde est-il bien allumé ? (node server.js)")
+    // On récupère les anciennes réponses, on ajoute la nouvelle, et on sauvegarde
+    const archives = JSON.parse(localStorage.getItem('archive_questions') || '[]')
+    archives.push(reponseA_Sauvegarder)
+    localStorage.setItem('archive_questions', JSON.stringify(archives))
+  } catch (e) {
+    console.error("Erreur de sauvegarde locale (peut-être une image trop lourde ?) :", e)
   }
+
+  // On sauvegarde localement pour l'écran final de CETTE session
+  results.value.push({
+    q: questions[step.value].q,
+    a: currentAnswer.value,
+    img: imgBase64 || uploadedImage.value 
+  })
+
+  // Nettoyage et passage à la suite
+  currentAnswer.value = ""
+  uploadedImage.value = null
+  rawFile.value = null
+  step.value++
+  window.scrollTo(0,0)
 }
 </script>
 
@@ -148,7 +150,6 @@ const next = async () => {
         </div>
 
        <div class="text-center border-b-8 border-blue-900 pb-12 relative overflow-hidden bg-blue-50 rounded-t-3xl p-8">
-  
   <div class="absolute top-4 left-10 text-4xl animate-bounce delay-75">🐠</div>
   <div class="absolute bottom-4 right-10 text-4xl animate-bounce delay-300">🐡</div>
   <div class="absolute top-1/2 right-5 text-2xl animate-pulse">🐟</div>

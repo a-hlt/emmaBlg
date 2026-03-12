@@ -67,29 +67,29 @@ const toggleFaq = (id) => {
   if (item) item.open = !item.open
 }
 
-// --- FONCTION DE SAUVEGARDE RÉELLE ---
-const submitFeedback = async () => {
+// --- FONCTION DE SAUVEGARDE (100% FRONT-END) ---
+const submitFeedback = () => {
   if (!feedback.value.trim()) return
+  
   isSending.value = true
-  try {
-    const response = await fetch('http://localhost:3001/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: feedback.value })
-    })
 
-    if (response.ok) {
-      feedback.value = ''
-      showNotification.value = true
-      setTimeout(() => { showNotification.value = false }, 3000)
-    } else {
-      console.error("Le serveur a renvoyé une erreur")
-    }
-  } catch (error) {
-    console.error("Erreur de connexion au serveur :", error)
-  } finally {
+  // On simule un délai réseau pour faire genre "ça charge"
+  setTimeout(() => {
+    // Petit easter egg : on sauvegarde dans SON navigateur
+    const existingReviews = JSON.parse(localStorage.getItem('mes_avis_inutiles') || '[]')
+    existingReviews.push(feedback.value)
+    localStorage.setItem('mes_avis_inutiles', JSON.stringify(existingReviews))
+
+    console.log("Avis envoyé dans le vide intersidéral :", feedback.value)
+
+    // On reset l'interface
+    feedback.value = ''
+    showNotification.value = true
     isSending.value = false
-  }
+
+    // On cache la notification après 3 secondes
+    setTimeout(() => { showNotification.value = false }, 3000)
+  }, 800) // 800 millisecondes de suspense
 }
 
 const runMagie = () => {
