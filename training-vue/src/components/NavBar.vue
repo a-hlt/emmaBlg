@@ -26,7 +26,7 @@ const direQueCaSertARien = () => {
         <a href="https://ihasabucket.com" class="cursor-pointer hover:text-blue-400 transition-colors">Projets</a>
         <a href="https://bedboat.fr/" class="cursor-pointer hover:text-blue-400 transition-colors">Contact</a>
          <router-link to="/archives">
-      <h1 class="text-xl font-black tracking-tight text-blue-400 uppercase italic">
+      <h1 class="cursor-pointer hover:text-blue-400 transition-colors">
         archives
       </h1>
       </router-link>
